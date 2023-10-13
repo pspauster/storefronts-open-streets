@@ -183,6 +183,13 @@ ggplot()+
   geom_sf(open_streets_buffer, mapping = aes())+
   geom_sf(storefront_vacancies_sf, mapping = aes(color = open_street))
 
+leaflet(options = leafletOptions(crs = leafletCRS(code = "EPSG:2263"))) %>% 
+  addProviderTiles(provider = "CartoDB.Positron") %>% 
+  addPolylines(data = open_streets_locations, color = "blue") %>% 
+  addPolygons(data = open_streets_buffer, opacity = 0.5)
+
+#checking a reasonable buffer distance
+
 
 ```
 
@@ -190,11 +197,22 @@ ggplot()+
 
 open_street_summary <- as.data.frame(storefront_vacancies_sf) %>% 
   group_by(year, open_street) %>% 
-  
+  summarize(total = n(),
+         vacant = sum(vacant_on_12_31 == "YES"),
+         not_vacant = sum(vacant_on_12_31 == "NO")) %>% 
+  group_by(open_street) %>% 
+  arrange(year) %>% 
+  mutate(
+         vacant_rate = vacant/(vacant+not_vacant),
+         change_vacancies = vacant - lag(vacant),
+         per_point_change_vacant = vacant_rate - lag(vacant_rate),
+         per_change_vacant_rate = (vacant_rate/lag(vacant_rate))-1)
 
 
-
-
+open_street_summary %>% 
+  ggplot()+
+  geom_line(mapping = aes(x = year, y= vacant_rate, color = open_street))+
+  geom_line(data = store_summary_time, mapping = aes(x = year, y = vacant_rate, color ="city average"), color = "gray")
 
 ```
 
